@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using FileReaderLib;
 using System.Reflection;
-
+using System.Diagnostics;
 namespace FileReader
 {
     class Program
@@ -50,14 +50,29 @@ namespace FileReader
 
         static void Main(string[] args)
         {
+            var commonCounterTimer = new Stopwatch();
+            var threadsCounterTimer = new Stopwatch();
             var program = new Program();
             Console.WriteLine("Input file's path for read: ");
             string pathForRead = Console.ReadLine();
             Console.WriteLine("Input file's path for write: ");
+
             string pathForWrite = Console.ReadLine();
             object readedText = program.ReadText(pathForRead, pathForWrite);
             MethodInfo countWords = typeof(FileReaderLib.WordCounter).GetMethod("CountWords", BindingFlags.Instance | BindingFlags.NonPublic);
-            program.WriteToFile(countWords.Invoke(new WordCounter(), new object[] { readedText }) as Dictionary<string, int>);
+            commonCounterTimer.Start();
+            Dictionary<string, int> commonWordsCount = countWords.Invoke(new WordCounter(), new object[] { readedText }) as Dictionary<string, int>;
+            commonCounterTimer.Stop();
+            program.WriteToFile(commonWordsCount);
+
+            WordCounter libMeths = new WordCounter();
+            threadsCounterTimer.Start();
+            Dictionary<string, int> asyncWordsCount = libMeths.CountWordsThread(readedText as string);
+            threadsCounterTimer.Stop();
+            program.WriteToFile(asyncWordsCount);
+
+            Console.WriteLine("Common counter runtime: " + commonCounterTimer.Elapsed.ToString());
+            Console.WriteLine("Threads counter runtime: " + threadsCounterTimer.Elapsed.ToString());
             Console.ReadKey();
         }
     }
